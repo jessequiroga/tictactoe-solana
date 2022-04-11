@@ -1,37 +1,20 @@
-import React, { useReducer } from 'react';
+import React, { useState } from 'react';
 import Board from './Board';
-
-const reducer = (state, action) => {
-  switch (action.type) {
-    case 'JUMP':
-      return {
-        ...state,
-        xIsNext: action.payload.step % 2 === 0,
-        history: state.history.slice(0, action.payload.step + 1),
-      };
-    case 'MOVE':
-      return {
-        ...state,
-        history: state.history.concat({
-          squares: action.payload.squares,
-        }),
-        xIsNext: !state.xIsNext,
-      };
-    default:
-      return state;
-  }
-};
+import {getJrpcClient} from '../utils/jrpcclient';
 
 export default function Game() {
-  const [state, dispatch] = useReducer(reducer, {
-    xIsNext: true,
-    history: [{ squares: Array(9).fill(null) }],
-  });
-  const { xIsNext, history } = state;
-  const jumpTo = (step) => {
-    dispatch({ type: 'JUMP', payload: { step } });
-  };
-  const handleClick = (i) => {
+  const [xIsNext, setXIsNext] = useState(true)
+  const [history, setHistory] = useState([{ squares: Array(9).fill(null) }])
+  
+  const newGame = async () => {
+    setHistory([{ squares: Array(9).fill(null) }]);
+    setXIsNext(true);
+    const api = getJrpcClient();
+    const response = await api.request("TicTacToe.newgame", "board-key-0", "player0", "")
+    console.log(response);
+  }
+
+  const handleClick = async (i) => {
     const current = history[history.length - 1];
     const squares = current.squares.slice();
     const winner = calculateWinner(squares);
@@ -39,7 +22,10 @@ export default function Game() {
       return;
     }
     squares[i] = xIsNext ? 'X' : 'O';
-    dispatch({ type: 'MOVE', payload: { squares } });
+    setHistory(history.concat({
+      squares: squares,
+    }));
+    setXIsNext(!xIsNext);
   };
   const current = history[history.length - 1];
   const winner = calculateWinner(current.squares);
@@ -51,11 +37,9 @@ export default function Game() {
     : 'Next player is ' + (xIsNext ? 'X' : 'O');
 
   const moves = history.map((step, move) => {
-    const desc = move ? 'Go to #' + move : 'Start the Game';
+    const desc = move ? 'Go to #' + move : 'Welcome game!';
     return (
-      <li key={move}>
-        <button onClick={() => jumpTo(move)}>{desc}</button>
-      </li>
+      <li key={move}>{desc}</li>
     );
   });
 
@@ -68,6 +52,7 @@ export default function Game() {
         ></Board>
       </div>
       <div className="game-info">
+        <p><button onClick={newGame}>Start New Game</button></p>
         <div>{status}</div>
         <ul>{moves}</ul>
       </div>

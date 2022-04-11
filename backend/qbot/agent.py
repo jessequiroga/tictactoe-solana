@@ -1,7 +1,8 @@
 import random
+from xmlrpc.client import Boolean
 
-from q import Q
-from tictactoe import TicTacToe
+from qbot.tictactoe import TicTacToe
+from qbot.q import Q
 
 class Agent:
     def __init__(self, rows=3):
@@ -17,8 +18,10 @@ class Agent:
             return random.choice(valid_actions)
         return best
 
-    def _learn_one_game(self):
+    def _learn_one_game(self, flag: Boolean):
         game = TicTacToe(self.rows)
+        if flag:
+            game.play(*random.choice(game.get_valid_actions()))
         while True:
             state = game.get_state()
             action = self._get_action(state, game.get_valid_actions())
@@ -34,8 +37,8 @@ class Agent:
                 break
             self.qlearner.update(state, action, game.get_state(), 0)
 
-    def learn(self, n=20000):
+    def learn(self, n=50000):
         delta = 2.0 / n
-        for _ in range(n):
-            self._learn_one_game()
+        for i in range(n):
+            self._learn_one_game(i % 2 == 0)
             self.eps -= delta
