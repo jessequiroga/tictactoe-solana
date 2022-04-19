@@ -1,32 +1,82 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Board from './Board';
 import {getJrpcClient} from '../utils/jrpcclient';
+
+const GAME_ID = -1
 
 export default function Game() {
   const [xIsNext, setXIsNext] = useState(true)
   const [history, setHistory] = useState([{ squares: Array(9).fill(null) }])
-  
+  const [gameID, setGameID] = useState(GAME_ID)
+  const [userPosition, setUserPosition] = useState(null)
+  const [loading, setLoading] = useState(true)
+
   const newGame = async () => {
     setHistory([{ squares: Array(9).fill(null) }]);
-    setXIsNext(true);
+    setUserPosition(null);
     const api = getJrpcClient();
-    const response = await api.request("TicTacToe.newgame", "board-key-0", "player0", "")
-    console.log(response);
+    const response = await api.request("TicTacToe.newgame", "board-key-" + gameID + 22, "player0", "")
+    const res = JSON.parse(response)
+    setGameID(res.game_id)
+    setXIsNext(res.player)
+    setLoading(false)
   }
 
-  const handleClick = async (i) => {
+  const checkBoard = () => {
     const current = history[history.length - 1];
     const squares = current.squares.slice();
     const winner = calculateWinner(squares);
-    if (winner || squares[i]) {
-      return;
+    if (winner) {
+      return null;
     }
-    squares[i] = xIsNext ? 'X' : 'O';
+    return squares;
+  }
+
+  const updateBoard = (i, squares) => {
+    squares[i] = xIsNext ? 'O' : 'X';
     setHistory(history.concat({
-      squares: squares,
+      squares: [...squares],
     }));
     setXIsNext(!xIsNext);
+    setLoading(false);
+  }
+
+  const handleClick = async (i) => {
+    if (loading) return;
+
+    let squares = checkBoard();
+ 
+    if (squares && squares[i]) return;
+
+    updateBoard(i, squares);
+    setUserPosition(i);
   };
+
+  const executeBot = async () => {
+    const api = getJrpcClient();
+    let x = -1, y = -1;
+    if (userPosition !== null) {
+      x = Math.floor(userPosition / 3);
+      y = userPosition % 3
+    }
+    const response = await api.request("TicTacToe.play", gameID, x, y, "player0")
+    const res = JSON.parse(response)
+    const action = parseInt(res.action)
+    
+    const squares = checkBoard();
+    if (squares != null) {
+      updateBoard(action, squares);
+    }
+    if (res.winner) setLoading(true)
+  }
+  useEffect(() => {
+    if (xIsNext) {
+      return;
+    }
+    setLoading(true);
+    executeBot();
+  }, [xIsNext, gameID])
+
   const current = history[history.length - 1];
   const winner = calculateWinner(current.squares);
 

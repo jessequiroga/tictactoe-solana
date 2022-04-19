@@ -6,6 +6,7 @@ export default function Board(props) {
     <div className="board">
       {props.squares.map((value, index) => (
         <Square
+          key={index}
           value={value}
           onClick={() => {
             props.onClick(index);

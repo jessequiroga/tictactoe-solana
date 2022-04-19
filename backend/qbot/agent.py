@@ -13,9 +13,7 @@ class Agent:
     def _get_action(self, state, valid_actions):
         if random.random() < self.eps:
             return random.choice(valid_actions)
-        best = self.qlearner.get_best_action(state)
-        if best is None:
-            return random.choice(valid_actions)
+        best = self.qlearner.get_best_action(state, valid_actions)
         return best
 
     def _learn_one_game(self, flag: Boolean):
@@ -28,16 +26,16 @@ class Agent:
             winner = game.play(*action)
 
             if winner or game.is_ended():
-                self.qlearner.update(state, action, game.get_state(), 100)
+                self.qlearner.update(state, action, game.get_state(),  100 if winner else 10)
                 break
             
             winner = game.play(*random.choice(game.get_valid_actions()))
             if winner or game.is_ended():
-                self.qlearner.update(state, action, game.get_state(), -100)
+                self.qlearner.update(state, action, game.get_state(), -100 if winner else 10)
                 break
             self.qlearner.update(state, action, game.get_state(), 0)
 
-    def learn(self, n=50000):
+    def learn(self, n=300000):
         delta = 2.0 / n
         for i in range(n):
             self._learn_one_game(i % 2 == 0)

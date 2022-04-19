@@ -30,5 +30,6 @@ def test_bot(client, runner):
     response = client.post("/api/tictactoe", json=request("TicTacToe.play", params={"game_id": 1, "x": 0, "y": 0, "player": "player1"}))
     
     parsed = parse(response.json)
+    print(parsed)
     assert "state" in parsed.result
     

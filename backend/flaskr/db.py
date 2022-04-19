@@ -4,8 +4,6 @@ import click
 from flask import current_app, g
 from flask.cli import with_appcontext
 
-from qbot.access import Engine
-
 def get_db():
     if 'db' not in g:
         g.db = sqlite3.connect(
@@ -15,12 +13,6 @@ def get_db():
         g.db.row_factory = sqlite3.Row
 
     return g.db
-
-def get_engine()-> Engine:
-    if 'engine' not in g:
-        g.engine = Engine()
-    
-    return g.engine
 
 def close_db(e=None):
     db = g.pop('db', None)

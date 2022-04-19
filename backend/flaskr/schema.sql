@@ -5,7 +5,7 @@ CREATE TABLE board(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     player_a TEXT,
     player_b TEXT,
-    board_key TEXT UNIQUE NOT NULL
+    board_key TEXT NOT NULL
 );
 
 CREATE TABLE track(

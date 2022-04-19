@@ -1,3 +1,4 @@
+import random
 from collections import defaultdict
 
 class Q:
@@ -13,8 +14,8 @@ class Q:
         value = value + self.alpha * (reward + self.discount * next_q - value)
         self.values[state][action] = value
 
-    def get_best_action(self, state):
+    def get_best_action(self, state, valid_actions):
         keys = list(self.values[state].keys())
         if not keys:
-            return None
-        return max(keys, key=lambda x: self.values[state][x])
+            return random.choice(valid_actions)
+        return max(keys, key=lambda x: self.values[state][x] if x in valid_actions else -10000)
