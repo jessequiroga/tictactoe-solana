@@ -1,7 +1,12 @@
-import React from "react";
-import Square from "./Square";
+import { FC } from "react";
+import { Square } from "./Square";
 
-export default function Board(props) {
+interface BoardProps {
+  squares: string[];
+  onClick: (index: number) => {};
+}
+
+export const Board: FC<BoardProps> = (props) => {
   return (
     <div className="board">
       {props.squares.map((value, index) => (
@@ -15,4 +20,4 @@ export default function Board(props) {
       ))}
     </div>
   );
-}
+};

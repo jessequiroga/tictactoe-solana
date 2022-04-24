@@ -5,7 +5,9 @@ CREATE TABLE board(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     player_a TEXT,
     player_b TEXT,
-    board_key TEXT NOT NULL
+    block_height TEXT NOT NULL,
+    board_key TEXT NOT NULL, 
+    escrow_account TEXT NOT NULL
 );
 
 CREATE TABLE track(

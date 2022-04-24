@@ -4,3 +4,5 @@ Flask-JSONRPC
 pytest
 jsonrpcclient
 flask_cors
+solana
+anchorpy[cli]

@@ -173,12 +173,13 @@ pub mod smart_contract {
 }
 
 #[derive(Accounts)]
+#[instruction(block_height:u64)]
 pub struct CreateGamePlayer<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
     #[account(
         init,
-        seeds = [BOARD_STATE_SEED.as_bytes(), user.key().as_ref()],
+        seeds = [BOARD_STATE_SEED.as_bytes(), user.key().as_ref(), &block_height.to_le_bytes()],
         bump,
         payer = user,
         space = 8 + std::mem::size_of::<Pubkey>() * 2 + 4 + 9 + 8 + 1 + 8,
@@ -202,7 +203,7 @@ pub struct CreateGameServer<'info> {
     pub user: Signer<'info>,
     #[account(
         mut,
-        seeds = [BOARD_STATE_SEED.as_bytes(), board_state.player1.as_ref()],
+        seeds = [BOARD_STATE_SEED.as_bytes(), board_state.player1.as_ref(), &board_state.block_height.to_le_bytes()],
         bump,
     )]
     pub board_state: Account<'info, BoardState>,
@@ -227,7 +228,7 @@ pub struct EndGame<'info> {
     pub player2: AccountInfo<'info>,
     #[account(
         mut,
-        seeds = [BOARD_STATE_SEED.as_bytes(), board_state.player1.as_ref()],
+        seeds = [BOARD_STATE_SEED.as_bytes(), board_state.player1.as_ref(), &board_state.block_height.to_le_bytes()],
         bump,
     )]
     pub board_state: Account<'info, BoardState>,

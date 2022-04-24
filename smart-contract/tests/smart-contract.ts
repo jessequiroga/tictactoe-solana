@@ -12,22 +12,23 @@ describe("smart-contract", () => {
   const user = Keypair.generate();
   const server = Keypair.generate();
   const provider = anchor.getProvider();
+  const blockHeight = 1000;
 
   it("Is createGameByPlayer!", async () => {
     await program.provider.connection.confirmTransaction(
       await program.provider.connection.requestAirdrop(user.publicKey, 1e9), "confirmed"
-    )
+    )  
+    const amount = 50000000;
+
     // Add your test here.
     const [boardState, boardStateNonce] = await anchor.web3.PublicKey.findProgramAddress([
-      Buffer.from(anchor.utils.bytes.utf8.encode("board-state")), user.publicKey.toBuffer()
+      Buffer.from(anchor.utils.bytes.utf8.encode("board-state")), user.publicKey.toBuffer(),
+      (new anchor.BN(blockHeight)).toArrayLike(Buffer, "le", 8)
     ], program.programId)
 
     const [escrowAccount, escrowAccountNonce] = await anchor.web3.PublicKey.findProgramAddress([
       Buffer.from(anchor.utils.bytes.utf8.encode("escrow-account")), boardState.toBuffer()
     ], program.programId)
-
-    const blockHeight = await program.provider.connection.getBlockHeight();
-    const amount = 50000000;
 
     const tx = await program.rpc.createGameByPlayer(new anchor.BN(blockHeight), new anchor.BN(amount), {
       accounts: {
@@ -55,7 +56,8 @@ describe("smart-contract", () => {
     )
     // Add your test here.
     const [boardState, boardStateNonce] = await anchor.web3.PublicKey.findProgramAddress([
-      Buffer.from(anchor.utils.bytes.utf8.encode("board-state")), user.publicKey.toBuffer()
+      Buffer.from(anchor.utils.bytes.utf8.encode("board-state")), user.publicKey.toBuffer(),
+      (new anchor.BN(blockHeight)).toArrayLike(Buffer, "le", 8)
     ], program.programId)
 
     const [escrowAccount, escrowAccountNonce] = await anchor.web3.PublicKey.findProgramAddress([
@@ -84,7 +86,8 @@ describe("smart-contract", () => {
   it("Is endGame!", async () => {
     // Add your test here.
     const [boardState, boardStateNonce] = await anchor.web3.PublicKey.findProgramAddress([
-      Buffer.from(anchor.utils.bytes.utf8.encode("board-state")), user.publicKey.toBuffer()
+      Buffer.from(anchor.utils.bytes.utf8.encode("board-state")), user.publicKey.toBuffer(),
+      (new anchor.BN(blockHeight)).toArrayLike(Buffer, "le", 8)
     ], program.programId)
 
     const [escrowAccount, escrowAccountNonce] = await anchor.web3.PublicKey.findProgramAddress([
