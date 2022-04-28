@@ -1,8 +1,10 @@
 import json
+import random
 import asyncio
-from pydoc import cli
+import time
 from nacl.public import PrivateKey as NaclPrivateKey
 from solana.rpc.async_api import AsyncClient
+from solana.rpc.api import Client
 from anchorpy import Idl, Program, Context
 from solana.keypair import Keypair
 from solana.publickey import PublicKey
@@ -11,53 +13,51 @@ from spl.token.constants import TOKEN_PROGRAM_ID
 
 ENDPOINT = "http://127.0.0.1:8899"
 
-class SolanaClient:
-    def __init__(self, endpoint):
-        self.client = AsyncClient(endpoint)
-        with open(".secret", "r") as file:
-            secret = [int(x) for x in json.loads(file.read())]
-            self.sender = Keypair(NaclPrivateKey(bytes(bytearray(secret[:32]))))
-        with open("smart_contract.json", "r") as f:
-            raw_idl = json.load(f)
-        self.idl = Idl.from_json(raw_idl)
-        self.program_id = self.idl.metadata.address
+with open(".secret", "r") as file:
+    secret = [int(x) for x in json.loads(file.read())]
+    sender = Keypair(NaclPrivateKey(bytes(bytearray(secret[:32]))))
+with open("smart_contract.json", "r") as f:
+    raw_idl = json.load(f)
+idl = Idl.from_json(raw_idl)
+program_id = idl.metadata.address
 
-    async def new_game(self, block_height, user_wallet):
-        print(block_height, block_height+1)
-        player = False
+async def new_game(block_height, user_wallet):
+    player = False    
+    async with AsyncClient(ENDPOINT) as client:
         for _ in range(10):
-            block = await self.client.get_block(block_height + 1)
+            block = await client.get_block(block_height + 1)
             if "result" in block:
                 player = (block["result"]["blockhash"].encode()[-2] % 2) == 0
                 print("block hash: ", block["result"]["blockhash"].encode()[-2])
                 break
-            await asyncio.sleep(0.05)
+            time.sleep(0.05)
+        if not player:
+            player = bool(random.getrandbits(1))
+    print("Is First: ", player)
+    board_account, _ =  PublicKey.find_program_address([
+        "board-state".encode("utf8"),
+        bytes(PublicKey(user_wallet)),
+        int(block_height).to_bytes(8, "little")
+    ], PublicKey(program_id))
+    escrow_account, _ =  PublicKey.find_program_address([
+        "escrow-account".encode("utf8"),
+        bytes(board_account)
+    ], PublicKey(program_id))
+    accounts = {
+        "user": sender.public_key,
+        "board_state": board_account,
+        "escrow_account": escrow_account,
+        "system_program": SYS_PROGRAM_ID,
+        "token_program": TOKEN_PROGRAM_ID
+    }
+    async with Program(idl, program_id) as program:
+        await program.rpc["create_game_by_server"](
+            player,
+            ctx=Context(accounts=accounts, signers=[sender])
+        )
+        await program.close()
+    return player, board_account, escrow_account
 
-        board_account, _ =  PublicKey.find_program_address([
-            "board-state".encode("utf8"),
-            bytes(PublicKey(user_wallet)),
-            int(block_height).to_bytes(8, "little")
-        ], PublicKey(self.program_id))
-        escrow_account, _ =  PublicKey.find_program_address([
-            "escrow-account".encode("utf8"),
-            bytes(board_account)
-        ], PublicKey(self.program_id))
-        accounts = {
-            "user": self.sender.public_key,
-            "board_state": board_account,
-            "escrow_account": escrow_account,
-            "system_program": SYS_PROGRAM_ID,
-            "token_program": TOKEN_PROGRAM_ID
-        }
-        async with Program(self.idl, self.program_id) as program:
-            await program.rpc["create_game_by_server"](
-                True,
-                ctx=Context(accounts=accounts, signers=[self.sender])
-            )
-            await program.close()
-        return player, board_account, escrow_account
 
-client = SolanaClient(ENDPOINT)
-
-def update_board(block_height, user_wallet):
-    return asyncio.run(client.new_game(block_height, user_wallet))
+def update_board(block_height, user_wallet):    
+    return asyncio.run(new_game(block_height, user_wallet))

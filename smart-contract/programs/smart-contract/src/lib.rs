@@ -21,10 +21,10 @@ pub fn check_winner(board: [i8; 9]) -> BoardStateCode {
     for i in 0..VALID_ROW.len() {
         let mut sum: i8 = 0;
         for j in 0..VALID_ROW[i].len() {
-            sum += board[j];
+            sum += board[VALID_ROW[i][j] as usize];
         }
         if sum.abs() == 3 {
-            if board[VALID_ROW[i][0] as usize] == 1 {
+            if sum == 3 {
                 return BoardStateCode::FirstPlayerWin;
             } else {
                 return BoardStateCode::SecondPlayerWin;
@@ -46,8 +46,6 @@ pub fn check_winner(board: [i8; 9]) -> BoardStateCode {
 
 #[program]
 pub mod smart_contract {
-    use std::result;
-
     use super::*;
 
     pub fn create_game_by_player(ctx: Context<CreateGamePlayer>, block_height: u64, amount: u64) -> Result<()> {
@@ -71,12 +69,9 @@ pub mod smart_contract {
     }
 
     pub fn create_game_by_server(ctx: Context<CreateGameServer>, is_player_first: bool) -> Result<()> {
-        if is_player_first {
-            ctx.accounts.board_state.player2 = ctx.accounts.user.key();
-        } else {
-            ctx.accounts.board_state.player2 = ctx.accounts.board_state.player1;
-            ctx.accounts.board_state.player1 = ctx.accounts.user.key();
-        }
+        ctx.accounts.board_state.is_player_first = is_player_first;
+        ctx.accounts.board_state.player2 = ctx.accounts.user.key();
+        
 
         let tx = anchor_lang::solana_program::system_instruction::transfer(
             &ctx.accounts.user.key(),
@@ -95,6 +90,8 @@ pub mod smart_contract {
     }
 
     pub fn end_game(ctx: Context<EndGame>, board: [i8; 9], escrow_account_nonce: u8) -> Result<()> {
+        ctx.accounts.board_state.board = board;
+
         let result= check_winner(board);
         let board_state = &ctx.accounts.board_state;
         let board_state_key = &board_state.key();
@@ -132,12 +129,13 @@ pub mod smart_contract {
                     &player.key(),
                     board_state.amount * 2,    
                 );
-                anchor_lang::solana_program::program::invoke(
+                anchor_lang::solana_program::program::invoke_signed(
                     &tx,
                     &[
                         player.to_account_info(),
                         ctx.accounts.escrow_account.to_account_info(),
-                    ]   
+                    ],
+                    &[&escrow_account_seeds]  
                 )?;
             }
             BoardStateCode::Draw => {
@@ -146,12 +144,13 @@ pub mod smart_contract {
                     &ctx.accounts.player1.key(),
                     board_state.amount,    
                 );
-                anchor_lang::solana_program::program::invoke(
+                anchor_lang::solana_program::program::invoke_signed(
                     &tx1,
                     &[
                         ctx.accounts.player1.to_account_info(),
                         ctx.accounts.escrow_account.to_account_info(),
-                    ]   
+                    ],
+                    &[&escrow_account_seeds] 
                 )?;
 
                 let tx2 = anchor_lang::solana_program::system_instruction::transfer(
@@ -159,12 +158,13 @@ pub mod smart_contract {
                     &ctx.accounts.player2.key(),
                     board_state.amount,    
                 );
-                anchor_lang::solana_program::program::invoke(
+                anchor_lang::solana_program::program::invoke_signed(
                     &tx2,
                     &[
                         ctx.accounts.player2.to_account_info(),
                         ctx.accounts.escrow_account.to_account_info(),
-                    ]   
+                    ],
+                    &[&escrow_account_seeds] 
                 )?;
             }
         }
@@ -182,7 +182,7 @@ pub struct CreateGamePlayer<'info> {
         seeds = [BOARD_STATE_SEED.as_bytes(), user.key().as_ref(), &block_height.to_le_bytes()],
         bump,
         payer = user,
-        space = 8 + std::mem::size_of::<Pubkey>() * 2 + 4 + 9 + 8 + 1 + 8,
+        space = 8 + std::mem::size_of::<Pubkey>() * 2 + 4 + 9 + 8 + 1 + 8 + 1,
     )]
     pub board_state: Account<'info, BoardState>,
     /// CHECK: for the escrow purpose
@@ -247,6 +247,7 @@ pub struct EndGame<'info> {
 #[derive(Default)]
 pub struct BoardState {
     pub amount: u64,
+    pub is_player_first: bool,
     pub block_height: u64,
     pub player1: Pubkey,
     pub player2: Pubkey,

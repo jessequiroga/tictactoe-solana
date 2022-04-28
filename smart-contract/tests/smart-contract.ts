@@ -64,7 +64,7 @@ describe("smart-contract", () => {
       Buffer.from(anchor.utils.bytes.utf8.encode("escrow-account")), boardState.toBuffer()
     ], program.programId)
 
-    const tx = await program.rpc.createGameByServer(true, {
+    const tx = await program.rpc.createGameByServer(false, {
       accounts: {
         user: server.publicKey,
         boardState: boardState,
@@ -94,7 +94,7 @@ describe("smart-contract", () => {
       Buffer.from(anchor.utils.bytes.utf8.encode("escrow-account")), boardState.toBuffer()
     ], program.programId)
 
-    const tx = await program.rpc.endGame([1, 1, 1, 0, 0, 0, 0, 0, 0], escrowAccountNonce, {
+    const tx = await program.rpc.endGame([-1, -1, -1, 0, 0, 0, 0, 0, 0], escrowAccountNonce, {
       accounts: {
         player1: user.publicKey,
         player2: server.publicKey,
@@ -114,4 +114,37 @@ describe("smart-contract", () => {
     const balance = await provider.connection.getBalance(escrowAccount);
     console.log(`Server balance : ${userBalance}, ${srvBalance}, Escrow balance : ${balance}`)
   });
+
+  // it("Is endGame with draw!", async () => {
+  //   // Add your test here.
+  //   const [boardState, boardStateNonce] = await anchor.web3.PublicKey.findProgramAddress([
+  //     Buffer.from(anchor.utils.bytes.utf8.encode("board-state")), user.publicKey.toBuffer(),
+  //     (new anchor.BN(blockHeight)).toArrayLike(Buffer, "le", 8)
+  //   ], program.programId)
+
+  //   const [escrowAccount, escrowAccountNonce] = await anchor.web3.PublicKey.findProgramAddress([
+  //     Buffer.from(anchor.utils.bytes.utf8.encode("escrow-account")), boardState.toBuffer()
+  //   ], program.programId)
+
+  //   const tx = await program.rpc.endGame([1, 1, -1, 1, -1, 1, -1, 1, -1], escrowAccountNonce, {
+  //     accounts: {
+  //       player1: user.publicKey,
+  //       player2: server.publicKey,
+  //       boardState: boardState,
+  //       escrowAccount: escrowAccount,
+  //       systemProgram: SystemProgram.programId,
+  //       tokenProgram: TOKEN_PROGRAM_ID,
+  //     }, signers:[]
+  //   });
+  //   console.log("Your transaction signature", tx);
+
+  //   const board = await program.account.boardState.fetch(boardState);
+  //   console.log("Board State :: ", board);
+    
+  //   const userBalance = await provider.connection.getBalance(user.publicKey);
+  //   const srvBalance = await provider.connection.getBalance(server.publicKey);
+  //   const balance = await provider.connection.getBalance(escrowAccount);
+  //   console.log(`Server balance : ${userBalance}, ${srvBalance}, Escrow balance : ${balance}`)
+  // });
+
 });

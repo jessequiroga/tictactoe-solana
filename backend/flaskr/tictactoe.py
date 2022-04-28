@@ -18,7 +18,6 @@ def new_game(board_key: str, block_height: int, player_a: str, player_b: str) ->
     if board_key != str(board_account):
         print(board_key, board_account)
         return json.dumps({ 'game_id': -1, 'player': True })
-    print(player)
     if player:
         player_a, player_b = player_b, player_a
     db = get_db()
@@ -30,7 +29,7 @@ def new_game(board_key: str, block_height: int, player_a: str, player_b: str) ->
     )
     game_id = cursor.lastrowid
     db.commit()
-    result = { 'game_id': game_id, 'player': player }
+    result = { 'game_id': game_id, 'player': player, 'server_key': 'HvmmfAwjAPYoddA6pnt5UrUfmyCNTG17mUDafiWibADM' }
     return json.dumps(result)
 
 @bp.method('TicTacToe.removegame')
@@ -58,7 +57,7 @@ def play(game_id: int, x: int, y: int, player: str) -> str:
     if winner:
         return json.dumps(result)
 
-    if not (len(board['player_a']) and len(board['player_b'])):
+    if board['player_a'] == 'bot' or board['player_b'] == 'bot':
         winner, state, action = engine.next_action(game_id)
         db.execute(
             'INSERT INTO track (board_id, board_state, player)'

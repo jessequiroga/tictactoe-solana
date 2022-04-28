@@ -20,6 +20,7 @@ export const Game: FC = () => {
   const endpoint = "http://localhost:8899";
 
   const [xIsNext, setXIsNext] = useState(true);
+  const [xIsFirst, setXIsFirst] = useState(false);
   const [history, setHistory] = useState([{ squares: Array(9).fill(null) }]);
   const [gameID, setGameID] = useState(GAME_ID);
   const [userPosition, setUserPosition] = useState(-1);
@@ -53,6 +54,7 @@ export const Game: FC = () => {
     );
     const res = JSON.parse(response);
     setGameID(res.game_id);
+    setXIsFirst(res.player);
     setXIsNext(res.player);
     setServerKey(res.server_key);
 
@@ -103,34 +105,38 @@ export const Game: FC = () => {
       gameID,
       x,
       y,
-      "player0"
+      publicKey
     );
     const res = JSON.parse(response);
     const action = parseInt(res.action);
-
     const squares = checkBoard();
-    if (squares.length > 0) {
-      updateBoard(action, squares);
-    } else {
-      const current = history[history.length - 1];
-      const squares = current.squares.slice();
-      if (!anchorWallet) return;
-      const board = squares.map(
-        cell => {
-          if (cell === "O") return 1;
-          else if (cell === "X") return -1;
-          return 0;
-        }
-      )
-      let tx = await endGame(blockHeight, board, endpoint, anchorWallet as anchor.Wallet, serverKey);
-      if (!tx) return;
-      const transaction = new Transaction().add(tx);
-      const signature = await sendTransaction(transaction, connection);
-      await connection.confirmTransaction(signature, "processed");
-    }
+    if (squares.length > 0) updateBoard(action, squares);
     if (res.winner) setLoading(true);
   };
+
+  const endBoard = async () => {
+    const current = history[history.length - 1];
+    const squares = current.squares.slice();
+    if (!anchorWallet) return;
+    const board = squares.map(
+      cell => {
+        if (cell === "O") return 1;
+        else if (cell === "X") return -1;
+        return 0;
+      }
+    )
+    let tx = await endGame(blockHeight, xIsFirst, board, endpoint, anchorWallet as anchor.Wallet, serverKey);
+    if (!tx) return;
+    const transaction = new Transaction().add(tx);
+    const signature = await sendTransaction(transaction, connection);
+    await connection.confirmTransaction(signature, "processed");
+  }
+
   useEffect(() => {
+    const squares = checkBoard()
+    if (squares.length === 0) {
+      endBoard()
+    }
     if (xIsNext) {
       return;
     }

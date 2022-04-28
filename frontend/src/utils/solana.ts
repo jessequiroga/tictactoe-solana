@@ -39,7 +39,7 @@ export async function createGameByPlayer(
   );
 
   const blockHeight = await program.provider.connection.getBlockHeight();
-  const amount = 50000000;
+  const amount = 5000000000;
   try {
     const [boardState] = await anchor.web3.PublicKey.findProgramAddress(
       [
@@ -56,6 +56,7 @@ export async function createGameByPlayer(
       ],
       program.programId
     );
+    console.log("solana create : ", boardState, escrowAccount)
     return {
       tx: program.instruction.createGameByPlayer(
         new anchor.BN(blockHeight),
@@ -81,6 +82,7 @@ export async function createGameByPlayer(
 
 export async function endGame(
   blockHeight: number,
+  isFirst: boolean,
   board: number[],
   endpoint: string,
   wallet: anchor.Wallet,
@@ -109,6 +111,7 @@ export async function endGame(
         ],
         program.programId
       );
+    console.log("solana create : ", isFirst, board, boardState, escrowAccount)
     return program.instruction.endGame(
       board,
       escrowAccountNonce,
